@@ -11,7 +11,11 @@ const rootPath = "./public"
 
 func newServeMux() *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.Handle("/", http.FileServer(http.Dir(rootPath)))
+	mux.Handle("/app/",
+		http.StripPrefix("/app",
+			http.FileServer(http.Dir(rootPath))))
+
+	mux.HandleFunc("/healthz", healthzHandler)
 	return mux
 }
 
