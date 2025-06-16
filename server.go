@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"sync/atomic"
@@ -27,9 +28,18 @@ func (c *apiConfig) resetFileSrvHits(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (c *apiConfig) showFileSrvHits(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Add("content-type", "text/plain; charset=utf-8")
-	fileServerHits := strconv.Itoa(int(c.fileserverHits.Load()))
-	responseData := []byte("Hits: " + fileServerHits)
+	w.Header().Add("content-type", "text/html")
+	responseData := []byte(
+		fmt.Sprintf(
+			`<html>
+				<body>
+					<h1>Welcome, Chirpy Admin</h1>
+					<p>Chirpy has been visited %d times!</p>
+				</body>
+			</html>`, int(c.fileserverHits.Load()),
+		),
+	)
+
 	w.Write(responseData)
 }
 

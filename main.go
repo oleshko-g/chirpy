@@ -27,8 +27,8 @@ func newServeMux() *http.ServeMux {
 	)
 
 	mux.HandleFunc("GET /api/healthz", healthzHandler)
-	mux.HandleFunc("GET /api/metrics", c.showFileSrvHits)
-	mux.HandleFunc("POST /api/reset", c.resetFileSrvHits)
+	mux.HandleFunc("GET /admin/metrics", c.showFileSrvHits)
+	mux.HandleFunc("POST /admin/reset", c.resetFileSrvHits)
 	return mux
 }
 
