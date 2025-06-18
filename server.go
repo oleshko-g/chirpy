@@ -7,6 +7,18 @@ import (
 	"sync/atomic"
 )
 
+type ValidateChirpRequest struct {
+	Body string `json:"body"`
+}
+
+type ValidateChirpResponse struct {
+	Valid bool `json:"valid"`
+}
+
+type ValidateChirpErr struct {
+	Error string `json:"error"`
+}
+
 type apiConfig struct {
 	fileserverHits atomic.Int32
 }
