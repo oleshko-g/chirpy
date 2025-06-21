@@ -1,23 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"os"
 	"strconv"
 	"sync/atomic"
 )
-
-type ValidateChirpRequest struct {
-	Body string `json:"body"`
-}
-
-type ValidateChirpResponse struct {
-	Valid bool `json:"valid"`
-}
-
-type ValidateChirpErr struct {
-	Error string `json:"error"`
-}
 
 type apiConfig struct {
 	fileserverHits atomic.Int32
@@ -59,4 +50,57 @@ func healthzHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Header().Add("content-type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(http.StatusText(http.StatusOK)))
+}
+
+func validateChirp(w http.ResponseWriter, req *http.Request) {
+	const chirpMaxLength int = 140
+
+	type ValidateChirpRequest struct {
+		Body string `json:"body"`
+	}
+
+	type ValidateChirpResponse struct {
+		Valid bool `json:"valid"`
+	}
+
+	type ValidateChirpErr struct {
+		Error string `json:"error"`
+	}
+
+	decoder := json.NewDecoder(req.Body)
+	defer req.Body.Close()
+	var reqBody ValidateChirpRequest
+	err := decoder.Decode(&reqBody)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		errEncode := json.NewEncoder(w).Encode(ValidateChirpErr{
+			Error: err.Error(),
+		})
+		if errEncode != nil {
+			fmt.Fprintf(os.Stderr, "%s", errEncode)
+			return
+		}
+		return
+	}
+	log.Printf("%+v", reqBody)
+
+	if len(reqBody.Body) > chirpMaxLength {
+		w.WriteHeader(http.StatusBadRequest)
+		errEncode := json.NewEncoder(w).Encode(ValidateChirpErr{
+			Error: fmt.Sprintf("Chirp is longer then %d characters", chirpMaxLength),
+		})
+		if errEncode != nil {
+			fmt.Fprintf(os.Stderr, "%s", errEncode)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		return
+	}
+
+	w.Header().Set("content-type", "application/json")
+	errEncode := json.NewEncoder(w).Encode(ValidateChirpResponse{Valid: true})
+	if errEncode != nil {
+		fmt.Fprintf(os.Stderr, "%s", errEncode)
+		return
+	}
 }

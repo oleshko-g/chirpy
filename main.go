@@ -27,6 +27,7 @@ func newServeMux() *http.ServeMux {
 	)
 
 	mux.HandleFunc("GET /api/healthz", healthzHandler)
+	mux.HandleFunc("POST /api/validate_chirp", validateChirp)
 	mux.HandleFunc("GET /admin/metrics", c.showFileSrvHits)
 	mux.HandleFunc("POST /admin/reset", c.resetFileSrvHits)
 	return mux
@@ -39,6 +40,6 @@ func main() {
 		Addr:    ":" + port,
 	}
 
-	fmt.Printf("Serving on the port %s", server.Addr)
+	fmt.Printf("Serving on the port %s\n", server.Addr)
 	log.Fatal(server.ListenAndServe())
 }
