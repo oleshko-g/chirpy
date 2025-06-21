@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"sync/atomic"
 )
 
@@ -52,6 +53,25 @@ func healthzHandler(w http.ResponseWriter, _ *http.Request) {
 	w.Write([]byte(http.StatusText(http.StatusOK)))
 }
 
+func cleanInput(s string) string {
+	const profaneStub string = "****"
+	profanities := map[string]struct{}{
+		"kerfuffle": {},
+		"sharbert":  {},
+		"fornax":    {},
+	}
+
+	fields := strings.Fields(s)
+	for i, field := range fields {
+		field = strings.ToLower(field)
+		if _, ok := profanities[field]; ok {
+			fields[i] = profaneStub
+		}
+	}
+
+	return strings.Join(fields, " ")
+}
+
 func validateChirp(w http.ResponseWriter, req *http.Request) {
 	const chirpMaxLength int = 140
 
@@ -60,7 +80,7 @@ func validateChirp(w http.ResponseWriter, req *http.Request) {
 	}
 
 	type ValidateChirpResponse struct {
-		Valid bool `json:"valid"`
+		CleanedBody string `json:"cleaned_body"`
 	}
 
 	type ValidateChirpErr struct {
@@ -98,7 +118,7 @@ func validateChirp(w http.ResponseWriter, req *http.Request) {
 	}
 
 	w.Header().Set("content-type", "application/json")
-	errEncode := json.NewEncoder(w).Encode(ValidateChirpResponse{Valid: true})
+	errEncode := json.NewEncoder(w).Encode(ValidateChirpResponse{CleanedBody: cleanInput(reqBody.Body)})
 	if errEncode != nil {
 		fmt.Fprintf(os.Stderr, "%s", errEncode)
 		return
