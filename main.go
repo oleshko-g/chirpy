@@ -1,10 +1,16 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"sync/atomic"
+
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
+	"github.com/oleshko-g/chirpy/internal/database"
 )
 
 const port string = "8080"
@@ -33,7 +39,28 @@ func newServeMux() *http.ServeMux {
 	return mux
 }
 
+func openPostgresDB(dbURL string) (*sql.DB, error) {
+	db, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		return nil, err
+	}
+	err = db.Ping()
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
+}
 func main() {
+	godotenv.Load()
+
+	dbConn, errDBConn := openPostgresDB(os.Getenv("DB_URL"))
+	if errDBConn != nil {
+		fmt.Fprintln(os.Stderr, errDBConn)
+		os.Exit(1)
+	}
+
+	db := database.New(dbConn)
+	_ = db
 
 	server := &http.Server{
 		Handler: newServeMux(),
