@@ -9,10 +9,13 @@ import (
 	"strconv"
 	"strings"
 	"sync/atomic"
+
+	"github.com/oleshko-g/chirpy/internal/database"
 )
 
 type apiConfig struct {
 	fileserverHits atomic.Int32
+	dbQueries      *database.Queries
 }
 
 func (c *apiConfig) incFileSrvHits(h http.Handler) http.Handler {

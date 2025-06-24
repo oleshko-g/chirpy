@@ -20,6 +20,18 @@ var c *apiConfig = &apiConfig{
 	fileserverHits: atomic.Int32{},
 }
 
+func init() {
+	godotenv.Load()
+
+	dbConn, errDBConn := openPostgresDB(os.Getenv("DB_URL"))
+	if errDBConn != nil {
+		fmt.Fprintln(os.Stderr, errDBConn)
+		os.Exit(1)
+	}
+
+	c.dbQueries = database.New(dbConn)
+}
+
 func newServeMux() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.Handle("/app/",
@@ -50,17 +62,8 @@ func openPostgresDB(dbURL string) (*sql.DB, error) {
 	}
 	return db, nil
 }
+
 func main() {
-	godotenv.Load()
-
-	dbConn, errDBConn := openPostgresDB(os.Getenv("DB_URL"))
-	if errDBConn != nil {
-		fmt.Fprintln(os.Stderr, errDBConn)
-		os.Exit(1)
-	}
-
-	db := database.New(dbConn)
-	_ = db
 
 	server := &http.Server{
 		Handler: newServeMux(),
