@@ -9,7 +9,9 @@ import (
 	"strconv"
 	"strings"
 	"sync/atomic"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/oleshko-g/chirpy/internal/database"
 )
 
@@ -126,4 +128,40 @@ func validateChirp(w http.ResponseWriter, req *http.Request) {
 		fmt.Fprintf(os.Stderr, "%s", errEncode)
 		return
 	}
+}
+
+func createUser(w http.ResponseWriter, req *http.Request) {
+
+	var reqBody struct {
+		Email string `json:"email"`
+	}
+
+	var resBody struct {
+		ID        uuid.UUID `json:"id"`
+		CreatedAt time.Time `json:"created_at"`
+		UpdatedAt time.Time `json:"updated_at"`
+		Email     string    `json:"email"`
+	}
+
+	decoder := json.NewDecoder(req.Body)
+	errDecode := decoder.Decode(&reqBody)
+	if errDecode != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	createdUser, errCreateUser := c.dbQueries.CreateUser(req.Context(), reqBody.Email)
+	if errCreateUser != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	resBody.ID = createdUser.ID
+	resBody.CreatedAt = createdUser.CreatedAt
+	resBody.UpdatedAt = createdUser.UpdatedAt
+	resBody.Email = createdUser.Email
+
+	w.Header().Set("content-type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(resBody)
 }
