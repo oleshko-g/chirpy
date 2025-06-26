@@ -28,11 +28,20 @@ func (c *apiConfig) incFileSrvHits(h http.Handler) http.Handler {
 	return http.HandlerFunc(handler)
 }
 
-func (c *apiConfig) resetFileSrvHits(w http.ResponseWriter, _ *http.Request) {
+func (c *apiConfig) resetServer(w http.ResponseWriter, req *http.Request) {
 	c.fileserverHits.Store(0)
 	w.Header().Add("content-type", "text/plain; charset=utf-8")
 	fileServerHits := strconv.Itoa(int(c.fileserverHits.Load()))
-	responseData := []byte("Hits have been reset to: " + fileServerHits)
+
+	errResetUsers := c.dbQueries.ResetUsers(req.Context())
+
+	if errResetUsers != nil {
+		fmt.Fprintf(os.Stderr, "%s", errResetUsers)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	responseData := []byte("Hits have been reset to: " + fileServerHits + ".\n" + "All data has been reset.")
 	w.Write(responseData)
 }
 
