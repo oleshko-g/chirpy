@@ -18,6 +18,7 @@ import (
 type apiConfig struct {
 	fileserverHits atomic.Int32
 	dbQueries      *database.Queries
+	platform       string
 }
 
 func (c *apiConfig) incFileSrvHits(h http.Handler) http.Handler {
@@ -29,20 +30,23 @@ func (c *apiConfig) incFileSrvHits(h http.Handler) http.Handler {
 }
 
 func (c *apiConfig) resetServer(w http.ResponseWriter, req *http.Request) {
+	if c.platform != "dev" {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
 	c.fileserverHits.Store(0)
 	w.Header().Add("content-type", "text/plain; charset=utf-8")
 	fileServerHits := strconv.Itoa(int(c.fileserverHits.Load()))
 
 	errResetUsers := c.dbQueries.ResetUsers(req.Context())
-
 	if errResetUsers != nil {
 		fmt.Fprintf(os.Stderr, "%s", errResetUsers)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	responseData := []byte("Hits have been reset to: " + fileServerHits + ".\n" + "All data has been reset.")
-	w.Write(responseData)
+	w.Write([]byte("Server Hits have been reset to: " + fileServerHits + ".\n" + "All data has been reset."))
 }
 
 func (c *apiConfig) showFileSrvHits(w http.ResponseWriter, _ *http.Request) {

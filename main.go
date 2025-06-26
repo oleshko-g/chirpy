@@ -23,6 +23,8 @@ var c *apiConfig = &apiConfig{
 func init() {
 	godotenv.Load()
 
+	c.platform = os.Getenv("PLATFORM")
+
 	dbConn, errDBConn := openPostgresDB(os.Getenv("DB_URL"))
 	if errDBConn != nil {
 		fmt.Fprintln(os.Stderr, errDBConn)
