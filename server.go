@@ -178,3 +178,46 @@ func createUser(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(resBody)
 }
+
+func createChirp(w http.ResponseWriter, r *http.Request) {
+	var reqBody struct {
+		Body   string    `json:"body"`
+		UserID uuid.UUID `json:"user_id"`
+	}
+
+	errDecode := json.NewDecoder(r.Body).Decode(&reqBody)
+	if errDecode != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	createdChirp, errCreateChirp := c.dbQueries.CreateChirp(r.Context(), database.CreateChirpParams{
+		Body:   reqBody.Body,
+		UserID: reqBody.UserID,
+	})
+
+	if errCreateChirp != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	errEncode := json.NewEncoder(w).Encode(
+		struct {
+			ID        string `json:"id"`
+			CreatedAt string `json:"created_at"`
+			UpdatedAt string `json:"updated_at"`
+			Body      string `json:"body"`
+			UserID    string `json:"user_id"`
+		}{
+			ID:        createdChirp.ID.String(),
+			CreatedAt: createdChirp.CreatedAt.String(),
+			UpdatedAt: createdChirp.UpdatedAt.String(),
+			Body:      createdChirp.Body,
+			UserID:    createdChirp.UserID.String(),
+		},
+	)
+	if errEncode != nil {
+		return
+	}
+}

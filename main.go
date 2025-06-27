@@ -48,9 +48,9 @@ func newServeMux() *http.ServeMux {
 
 	mux.HandleFunc("GET /api/healthz", healthzHandler)
 	mux.HandleFunc("POST /api/users", createUser)
-	mux.HandleFunc("POST /api/validate_chirp", validateChirp)
 	mux.HandleFunc("GET /admin/metrics", c.showFileSrvHits)
 	mux.HandleFunc("POST /admin/reset", c.resetServer)
+	mux.HandleFunc("POST /api/chirps", createChirp)
 
 	return mux
 }
