@@ -191,3 +191,34 @@ func createChirp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+func getChirps(w http.ResponseWriter, r *http.Request) {
+
+	selectedChirps, errSelectChirps := c.dbQueries.SelectChirps(r.Context())
+	if errSelectChirps != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	chirps := make([]struct {
+		ID        string `json:"id"`
+		CreatedAt string `json:"created_at"`
+		UpdatedAt string `json:"updated_at"`
+		Body      string `json:"body"`
+		UserID    string `json:"user_id"`
+	}, len(selectedChirps))
+	fmt.Printf("%+v", selectedChirps)
+	for i, v := range selectedChirps {
+		chirps[i].ID = v.ID.String()
+		chirps[i].CreatedAt = v.CreatedAt.Format(time.RFC3339)
+		chirps[i].UpdatedAt = v.UpdatedAt.Format(time.RFC3339)
+		chirps[i].Body = v.Body
+		chirps[i].UserID = v.UserID.String()
+	}
+
+	errEncode := json.NewEncoder(w).Encode(chirps)
+	if errEncode != nil {
+		fmt.Fprintf(os.Stderr, "%s", errEncode)
+		return
+	}
+}
