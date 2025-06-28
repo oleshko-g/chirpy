@@ -52,6 +52,7 @@ func newServeMux() *http.ServeMux {
 	mux.HandleFunc("POST /admin/reset", c.resetServer)
 	mux.HandleFunc("POST /api/chirps", createChirp)
 	mux.HandleFunc("GET /api/chirps", getChirps)
+	mux.HandleFunc("GET /api/chirps/{chirp_id}", getChirp)
 
 	return mux
 }

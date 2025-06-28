@@ -1,7 +1,9 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -217,6 +219,43 @@ func getChirps(w http.ResponseWriter, r *http.Request) {
 	}
 
 	errEncode := json.NewEncoder(w).Encode(chirps)
+	if errEncode != nil {
+		fmt.Fprintf(os.Stderr, "%s", errEncode)
+		return
+	}
+}
+
+func getChirp(w http.ResponseWriter, r *http.Request) {
+	chirp_uuid, errParse := uuid.Parse(r.PathValue("chirp_id"))
+	if errParse != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	selectedChirp, errSelectChirp := c.dbQueries.SelectChirp(r.Context(), chirp_uuid)
+	if errSelectChirp != nil {
+		if errors.Is(errSelectChirp, sql.ErrNoRows) {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	errEncode := json.NewEncoder(w).Encode(struct {
+		ID        string `json:"id"`
+		CreatedAt string `json:"created_at"`
+		UpdatedAt string `json:"updated_at"`
+		Body      string `json:"body"`
+		UserID    string `json:"user_id"`
+	}{
+		ID:        selectedChirp.ID.String(),
+		CreatedAt: selectedChirp.CreatedAt.Format(time.RFC3339),
+		UpdatedAt: selectedChirp.UpdatedAt.Format(time.RFC3339),
+		Body:      selectedChirp.Body,
+		UserID:    selectedChirp.UserID.String(),
+	})
 	if errEncode != nil {
 		fmt.Fprintf(os.Stderr, "%s", errEncode)
 		return
