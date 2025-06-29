@@ -120,7 +120,10 @@ func createUser(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	createdUser, errCreateUser := c.dbQueries.CreateUser(req.Context(), reqBody.Email)
+	createdUser, errCreateUser := c.dbQueries.InsetUser(req.Context(), database.InsetUserParams{
+		Email:          reqBody.Email,
+		HashedPassword: sql.NullString{},
+	})
 	if errCreateUser != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
