@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/oleshko-g/chirpy/internal/auth"
 	"github.com/oleshko-g/chirpy/internal/database"
 )
 
@@ -103,7 +104,8 @@ func validateChirp(chirpBody string) error {
 func createUser(w http.ResponseWriter, req *http.Request) {
 
 	var reqBody struct {
-		Email string `json:"email"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 
 	var resBody struct {
@@ -120,10 +122,20 @@ func createUser(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	hashedPassword, errHashPassword := auth.HashPassword(reqBody.Password)
+	if errHashPassword != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	createdUser, errCreateUser := c.dbQueries.InsetUser(req.Context(), database.InsetUserParams{
-		Email:          reqBody.Email,
-		HashedPassword: sql.NullString{},
+		Email: reqBody.Email,
+		HashedPassword: sql.NullString{
+			String: hashedPassword,
+			Valid:  true,
+		},
 	})
+
 	if errCreateUser != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
