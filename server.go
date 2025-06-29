@@ -96,7 +96,7 @@ func validateChirp(chirpBody string) error {
 	const chirpMaxLength int = 140
 
 	if len(chirpBody) > chirpMaxLength {
-		return fmt.Errorf("Chirp is longer then %d characters", chirpMaxLength)
+		return fmt.Errorf("chirp is longer then %d characters", chirpMaxLength)
 	}
 	return nil
 }
@@ -149,6 +149,57 @@ func createUser(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(resBody)
+}
+
+func loginUser(w http.ResponseWriter, r *http.Request) {
+
+	var reqBody struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	errDecode := json.NewDecoder(r.Body).Decode(&reqBody)
+	if errDecode != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	fmt.Printf("%+v", reqBody)
+
+	selectedUser, errSelectUserByEmail := c.dbQueries.SelectUserByEmail(r.Context(), reqBody.Email)
+
+	if errSelectUserByEmail != nil {
+		if errors.Is(errSelectUserByEmail, sql.ErrNoRows) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if errCheckPasswordHash := auth.CheckPasswordHash(selectedUser.HashedPassword.String, reqBody.Password); errCheckPasswordHash != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	errEncode := json.NewEncoder(w).Encode(
+		struct {
+			ID        uuid.UUID `json:"id"`
+			CreatedAt time.Time `json:"created_at"`
+			UpdatedAt time.Time `json:"updated_at"`
+			Email     string    `json:"email"`
+		}{
+			ID:        selectedUser.ID,
+			CreatedAt: selectedUser.CreatedAt,
+			UpdatedAt: selectedUser.UpdatedAt,
+			Email:     selectedUser.Email,
+		},
+	)
+	if errEncode != nil {
+		fmt.Fprintf(os.Stderr, "%s", errEncode)
+		return
+	}
 }
 
 func createChirp(w http.ResponseWriter, r *http.Request) {
