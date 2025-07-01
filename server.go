@@ -96,7 +96,7 @@ func validateChirp(chirpBody string) error {
 	const chirpMaxLength int = 140
 
 	if len(chirpBody) > chirpMaxLength {
-		return fmt.Errorf("Chirp is longer then %d characters", chirpMaxLength)
+		return fmt.Errorf("chirp is longer then %d characters", chirpMaxLength)
 	}
 	return nil
 }
