@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"time"
 
 	jwt "github.com/golang-jwt/jwt/v5"
@@ -38,6 +39,9 @@ func validateUserJWT(tokenString, jwtSecret string) (uuid.UUID, error) {
 	claims := jwt.RegisteredClaims{}
 	userJWT, err := jwt.ParseWithClaims(tokenString, &claims,
 		func(token *jwt.Token) (interface{}, error) {
+			if token.Method.Alg() != jwt.SigningMethodHS256.Alg() {
+				return nil, fmt.Errorf("error signing method must be HS256. Token's method is %s", token.Method.Alg())
+			}
 			return []byte(jwtSecret), nil
 		},
 	)

@@ -6,9 +6,26 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestSignUserJWT(t *testing.T) {
+	userUUID, err := uuid.NewRandom()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		t.FailNow()
+	}
+
+	// Test: JWT signed
+	jwtSecret := "pirch"
+	tokenString, err := signUserJWT(userUUID, jwtSecret, 5*time.Second)
+	assert.NoError(t, err)
+	tokenStruct, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) { return []byte(jwtSecret), nil })
+	assert.NoError(t, err)
+	assert.True(t, tokenStruct.Valid)
+}
 
 func TestValidateUserJWT(t *testing.T) {
 	userUUID, err := uuid.NewRandom()
