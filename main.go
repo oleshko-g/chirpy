@@ -24,6 +24,7 @@ func init() {
 	godotenv.Load()
 
 	c.platform = os.Getenv("PLATFORM")
+	c.jwtSecret = os.Getenv("JWT_SECRET")
 
 	dbConn, errDBConn := openPostgresDB(os.Getenv("DB_URL"))
 	if errDBConn != nil {
