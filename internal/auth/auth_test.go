@@ -2,6 +2,7 @@ package auth
 
 import (
 	"fmt"
+	"net/http"
 	"os"
 	"testing"
 	"time"
@@ -49,4 +50,23 @@ func TestValidateUserJWT(t *testing.T) {
 	time.Sleep(5 * time.Second)
 	_, err = validateUserJWT(token, "pirch")
 	assert.Error(t, err)
+}
+
+func TestGetBearerToken(t *testing.T) {
+	userUUID, err := uuid.NewRandom()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		t.FailNow()
+	}
+	jwtSecret := "pirch"
+	tokenString, err := signUserJWT(userUUID, jwtSecret, 5*time.Second)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		t.FailNow()
+	}
+	headers := make(http.Header)
+	headers.Add("Authorization", "Bearer "+tokenString)
+	jwtString, err := GetBearerToken(&headers)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, jwtString)
 }
