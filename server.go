@@ -126,13 +126,6 @@ func createUser(w http.ResponseWriter, req *http.Request) {
 		Password string `json:"password"`
 	}
 
-	var resBody struct {
-		ID        uuid.UUID `json:"id"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
-		Email     string    `json:"email"`
-	}
-
 	decoder := json.NewDecoder(req.Body)
 	errDecode := decoder.Decode(&reqBody)
 	if errDecode != nil {
@@ -159,14 +152,19 @@ func createUser(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	resBody.ID = createdUser.ID
-	resBody.CreatedAt = createdUser.CreatedAt
-	resBody.UpdatedAt = createdUser.UpdatedAt
-	resBody.Email = createdUser.Email
-
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(resBody)
+	json.NewEncoder(w).Encode(struct {
+		ID        uuid.UUID `json:"id"`
+		CreatedAt string    `json:"created_at"`
+		UpdatedAt string    `json:"updated_at"`
+		Email     string    `json:"email"`
+	}{
+		ID:        createdUser.ID,
+		CreatedAt: createdUser.CreatedAt.Format(time.RFC3339),
+		UpdatedAt: createdUser.UpdatedAt.Format(time.RFC3339),
+		Email:     createdUser.Email,
+	})
 }
 
 func loginUser(w http.ResponseWriter, r *http.Request) {
@@ -219,14 +217,14 @@ func loginUser(w http.ResponseWriter, r *http.Request) {
 	errEncode := json.NewEncoder(w).Encode(
 		struct {
 			ID        uuid.UUID `json:"id"`
-			CreatedAt time.Time `json:"created_at"`
-			UpdatedAt time.Time `json:"updated_at"`
+			CreatedAt string    `json:"created_at"`
+			UpdatedAt string    `json:"updated_at"`
 			Email     string    `json:"email"`
 			Token     string    `json:"token"`
 		}{
 			ID:        selectedUser.ID,
-			CreatedAt: selectedUser.CreatedAt,
-			UpdatedAt: selectedUser.UpdatedAt,
+			CreatedAt: selectedUser.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: selectedUser.UpdatedAt.Format(time.RFC3339),
 			Email:     selectedUser.Email,
 			Token:     selectedUserJWT,
 		},
@@ -276,15 +274,15 @@ func createChirp(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	errEncode := json.NewEncoder(w).Encode(
 		struct {
-			ID        string `json:"id"`
-			CreatedAt string `json:"created_at"`
-			UpdatedAt string `json:"updated_at"`
-			Body      string `json:"body"`
-			UserID    string `json:"user_id"`
+			ID        uuid.UUID `json:"id"`
+			CreatedAt string    `json:"created_at"`
+			UpdatedAt string    `json:"updated_at"`
+			Body      string    `json:"body"`
+			UserID    string    `json:"user_id"`
 		}{
-			ID:        createdChirp.ID.String(),
-			CreatedAt: createdChirp.CreatedAt.String(),
-			UpdatedAt: createdChirp.UpdatedAt.String(),
+			ID:        createdChirp.ID,
+			CreatedAt: createdChirp.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: createdChirp.UpdatedAt.Format(time.RFC3339),
 			Body:      createdChirp.Body,
 			UserID:    createdChirp.UserID.String(),
 		},
@@ -304,15 +302,15 @@ func getChirps(w http.ResponseWriter, r *http.Request) {
 	}
 
 	chirps := make([]struct {
-		ID        string `json:"id"`
-		CreatedAt string `json:"created_at"`
-		UpdatedAt string `json:"updated_at"`
-		Body      string `json:"body"`
-		UserID    string `json:"user_id"`
+		ID        uuid.UUID `json:"id"`
+		CreatedAt string    `json:"created_at"`
+		UpdatedAt string    `json:"updated_at"`
+		Body      string    `json:"body"`
+		UserID    string    `json:"user_id"`
 	}, len(selectedChirps))
 	fmt.Printf("%+v", selectedChirps)
 	for i, v := range selectedChirps {
-		chirps[i].ID = v.ID.String()
+		chirps[i].ID = v.ID
 		chirps[i].CreatedAt = v.CreatedAt.Format(time.RFC3339)
 		chirps[i].UpdatedAt = v.UpdatedAt.Format(time.RFC3339)
 		chirps[i].Body = v.Body
@@ -345,17 +343,17 @@ func getChirp(w http.ResponseWriter, r *http.Request) {
 	}
 
 	errEncode := json.NewEncoder(w).Encode(struct {
-		ID        string `json:"id"`
-		CreatedAt string `json:"created_at"`
-		UpdatedAt string `json:"updated_at"`
-		Body      string `json:"body"`
-		UserID    string `json:"user_id"`
+		ID        uuid.UUID `json:"id"`
+		CreatedAt string    `json:"created_at"`
+		UpdatedAt string    `json:"updated_at"`
+		Body      string    `json:"body"`
+		UserID    uuid.UUID `json:"user_id"`
 	}{
-		ID:        selectedChirp.ID.String(),
+		ID:        selectedChirp.ID,
 		CreatedAt: selectedChirp.CreatedAt.Format(time.RFC3339),
 		UpdatedAt: selectedChirp.UpdatedAt.Format(time.RFC3339),
 		Body:      selectedChirp.Body,
-		UserID:    selectedChirp.UserID.String(),
+		UserID:    selectedChirp.UserID,
 	})
 	if errEncode != nil {
 		fmt.Fprintf(os.Stderr, "%s", errEncode)
