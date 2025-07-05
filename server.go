@@ -24,6 +24,23 @@ type apiConfig struct {
 	jwtSecret      string
 }
 
+type durationInSeconds time.Duration
+
+func (d *durationInSeconds) UnmarshalJSON(data []byte) error {
+	var input int
+	if err := json.Unmarshal(data, &input); err != nil {
+		return err
+	}
+
+	*d = durationInSeconds(time.Duration(input) * time.Second)
+
+	return nil
+}
+
+func (d durationInSeconds) String() string {
+	return time.Duration(d).String()
+}
+
 func (c *apiConfig) incFileSrvHits(h http.Handler) http.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		c.fileserverHits.Add(1)
@@ -155,13 +172,15 @@ func createUser(w http.ResponseWriter, req *http.Request) {
 func loginUser(w http.ResponseWriter, r *http.Request) {
 
 	var reqBody struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
+		Email     string             `json:"email"`
+		Password  string             `json:"password"`
+		ExpiresIn *durationInSeconds `json:"expires_in_seconds"`
 	}
 
 	errDecode := json.NewDecoder(r.Body).Decode(&reqBody)
 	if errDecode != nil {
 		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(errDecode.Error()))
 		return
 	}
 

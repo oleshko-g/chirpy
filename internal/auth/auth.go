@@ -25,12 +25,12 @@ func CheckPasswordHash(hashedPassword, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 }
 
-func signUserJWT(userID uuid.UUID, jwtSecret string, expiresAfter time.Duration) (string, error) {
+func signUserJWT(userID uuid.UUID, jwtSecret string, expiresIn time.Duration) (string, error) {
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.RegisteredClaims{
 			Issuer:    "chirpy",
 			IssuedAt:  jwt.NewNumericDate(time.Now().UTC()),
-			ExpiresAt: jwt.NewNumericDate(time.Now().UTC().Add(expiresAfter)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().UTC().Add(expiresIn)),
 			Subject:   userID.String(),
 		},
 	)
