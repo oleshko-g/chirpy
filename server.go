@@ -236,11 +236,21 @@ func loginUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func createChirp(w http.ResponseWriter, r *http.Request) {
-	var reqBody struct {
-		Body   string    `json:"body"`
-		UserID uuid.UUID `json:"user_id"`
+	bearerToken, errGetBearerToken := auth.GetBearerToken(&r.Header)
+	if errGetBearerToken != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
+	userID, errValitateUserJWT := auth.ValidateUserJWT(bearerToken, c.jwtSecret)
+	if errValitateUserJWT != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	var reqBody struct {
+		Body string `json:"body"`
+	}
 	errDecode := json.NewDecoder(r.Body).Decode(&reqBody)
 	if errDecode != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -262,7 +272,7 @@ func createChirp(w http.ResponseWriter, r *http.Request) {
 
 	createdChirp, errCreateChirp := c.dbQueries.CreateChirp(r.Context(), database.CreateChirpParams{
 		Body:   cleanInput(reqBody.Body),
-		UserID: reqBody.UserID,
+		UserID: userID,
 	})
 
 	if errCreateChirp != nil {
