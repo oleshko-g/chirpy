@@ -203,17 +203,32 @@ func loginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	selectedUserJWT, errSignUserJWT := auth.SignUserJWT(selectedUser.ID, c.jwtSecret,
+		func() time.Duration {
+			if reqBody.ExpiresIn != nil && *reqBody.ExpiresIn > 0 && *reqBody.ExpiresIn <= 3600 {
+				return time.Duration(*reqBody.ExpiresIn)
+			}
+			return time.Duration(3600) * time.Second
+		}(),
+	)
+	if errSignUserJWT != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
 	errEncode := json.NewEncoder(w).Encode(
 		struct {
 			ID        uuid.UUID `json:"id"`
 			CreatedAt time.Time `json:"created_at"`
 			UpdatedAt time.Time `json:"updated_at"`
 			Email     string    `json:"email"`
+			Token     string    `json:"token"`
 		}{
 			ID:        selectedUser.ID,
 			CreatedAt: selectedUser.CreatedAt,
 			UpdatedAt: selectedUser.UpdatedAt,
 			Email:     selectedUser.Email,
+			Token:     selectedUserJWT,
 		},
 	)
 	if errEncode != nil {
