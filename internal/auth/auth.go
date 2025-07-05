@@ -25,7 +25,7 @@ func CheckPasswordHash(hashedPassword, password string) error {
 	return bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(password))
 }
 
-func signUserJWT(userID uuid.UUID, jwtSecret string, expiresIn time.Duration) (string, error) {
+func SignUserJWT(userID uuid.UUID, jwtSecret string, expiresIn time.Duration) (string, error) {
 	t := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.RegisteredClaims{
 			Issuer:    "chirpy",
@@ -37,7 +37,7 @@ func signUserJWT(userID uuid.UUID, jwtSecret string, expiresIn time.Duration) (s
 	return t.SignedString([]byte(jwtSecret))
 }
 
-func validateUserJWT(tokenString, jwtSecret string) (uuid.UUID, error) {
+func ValidateUserJWT(tokenString, jwtSecret string) (uuid.UUID, error) {
 	claims := jwt.RegisteredClaims{}
 	userJWT, err := jwt.ParseWithClaims(tokenString, &claims,
 		func(token *jwt.Token) (interface{}, error) {
