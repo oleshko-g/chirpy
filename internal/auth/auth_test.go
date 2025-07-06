@@ -21,7 +21,7 @@ func TestSignUserJWT(t *testing.T) {
 
 	// Test: JWT signed
 	jwtSecret := "pirch"
-	tokenString, err := signUserJWT(userUUID, jwtSecret, 5*time.Second)
+	tokenString, err := SignUserJWT(userUUID, jwtSecret, 5*time.Second)
 	assert.NoError(t, err)
 	tokenStruct, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) { return []byte(jwtSecret), nil })
 	assert.NoError(t, err)
@@ -35,20 +35,20 @@ func TestValidateUserJWT(t *testing.T) {
 		t.FailNow()
 	}
 
-	token, err := signUserJWT(userUUID, "pirch", 5*time.Second)
+	token, err := SignUserJWT(userUUID, "pirch", 5*time.Second)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		t.FailNow()
 	}
 
 	// Test: valid jwtSecret
-	userUUIDFromClaims, err := validateUserJWT(token, "pirch")
+	userUUIDFromClaims, err := ValidateUserJWT(token, "pirch")
 	assert.NoError(t, uuid.Validate(userUUIDFromClaims.String()))
 	assert.NoError(t, err)
 
 	// Test: valid jwtSecret has expired
 	time.Sleep(5 * time.Second)
-	_, err = validateUserJWT(token, "pirch")
+	_, err = ValidateUserJWT(token, "pirch")
 	assert.Error(t, err)
 }
 
@@ -59,7 +59,7 @@ func TestGetBearerToken(t *testing.T) {
 		t.FailNow()
 	}
 	jwtSecret := "pirch"
-	tokenString, err := signUserJWT(userUUID, jwtSecret, 5*time.Second)
+	tokenString, err := SignUserJWT(userUUID, jwtSecret, 5*time.Second)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		t.FailNow()
