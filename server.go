@@ -192,6 +192,18 @@ func loginUser(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	refreshToken, _ := auth.MakeRefreshToken()
+	errInsertRefreshToken := c.dbQueries.InsertRefreshToken(r.Context(),
+		database.InsertRefreshTokenParams{
+			Token:     refreshToken,
+			UserID:    selectedUser.ID,
+			ExpiresAt: time.Now().UTC().AddDate(0, 0, 60),
+		},
+	)
+	if errInsertRefreshToken != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	errEncode := json.NewEncoder(w).Encode(
 		struct {
@@ -200,14 +212,14 @@ func loginUser(w http.ResponseWriter, r *http.Request) {
 			UpdatedAt    string    `json:"updated_at"`
 			Email        string    `json:"email"`
 			Token        string    `json:"token"`
-			RefreshToekn string    `json:"refresh_token"`
+			RefreshToken string    `json:"refresh_token"`
 		}{
 			ID:           selectedUser.ID,
 			CreatedAt:    selectedUser.CreatedAt.Format(time.RFC3339),
 			UpdatedAt:    selectedUser.UpdatedAt.Format(time.RFC3339),
 			Email:        selectedUser.Email,
 			Token:        selectedUserJWT,
-			RefreshToekn: "",
+			RefreshToken: refreshToken,
 		},
 	)
 	if errEncode != nil {
