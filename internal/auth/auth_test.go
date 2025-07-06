@@ -70,3 +70,9 @@ func TestGetBearerToken(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, jwtString)
 }
+
+func TestMakeRefreshToken(t *testing.T) {
+	refresh_token, err := MakeRefreshToken()
+	assert.NoError(t, err)
+	assert.NotEmpty(t, refresh_token)
+}
