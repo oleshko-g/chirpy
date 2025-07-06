@@ -24,23 +24,6 @@ type apiConfig struct {
 	jwtSecret      string
 }
 
-type durationInSeconds time.Duration
-
-func (d *durationInSeconds) UnmarshalJSON(data []byte) error {
-	var input int
-	if err := json.Unmarshal(data, &input); err != nil {
-		return err
-	}
-
-	*d = durationInSeconds(time.Duration(input) * time.Second)
-
-	return nil
-}
-
-func (d durationInSeconds) String() string {
-	return time.Duration(d).String()
-}
-
 func (c *apiConfig) incFileSrvHits(h http.Handler) http.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		c.fileserverHits.Add(1)
@@ -170,9 +153,8 @@ func createUser(w http.ResponseWriter, req *http.Request) {
 func loginUser(w http.ResponseWriter, r *http.Request) {
 
 	var reqBody struct {
-		Email     string             `json:"email"`
-		Password  string             `json:"password"`
-		ExpiresIn *durationInSeconds `json:"expires_in_seconds"`
+		Email    string `json:"email"`
+		Password string `json:"password"`
 	}
 
 	errDecode := json.NewDecoder(r.Body).Decode(&reqBody)
@@ -201,13 +183,10 @@ func loginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	selectedUserJWT, errSignUserJWT := auth.SignUserJWT(selectedUser.ID, c.jwtSecret,
-		func() time.Duration {
-			if reqBody.ExpiresIn != nil && *reqBody.ExpiresIn > 0 && *reqBody.ExpiresIn <= 3600 {
-				return time.Duration(*reqBody.ExpiresIn)
-			}
-			return time.Duration(3600) * time.Second
-		}(),
+	selectedUserJWT, errSignUserJWT := auth.SignUserJWT(
+		selectedUser.ID,
+		c.jwtSecret,
+		time.Duration(1)*time.Hour,
 	)
 	if errSignUserJWT != nil {
 		w.WriteHeader(http.StatusInternalServerError)
@@ -216,17 +195,19 @@ func loginUser(w http.ResponseWriter, r *http.Request) {
 
 	errEncode := json.NewEncoder(w).Encode(
 		struct {
-			ID        uuid.UUID `json:"id"`
-			CreatedAt string    `json:"created_at"`
-			UpdatedAt string    `json:"updated_at"`
-			Email     string    `json:"email"`
-			Token     string    `json:"token"`
+			ID           uuid.UUID `json:"id"`
+			CreatedAt    string    `json:"created_at"`
+			UpdatedAt    string    `json:"updated_at"`
+			Email        string    `json:"email"`
+			Token        string    `json:"token"`
+			RefreshToekn string    `json:"refresh_token"`
 		}{
-			ID:        selectedUser.ID,
-			CreatedAt: selectedUser.CreatedAt.Format(time.RFC3339),
-			UpdatedAt: selectedUser.UpdatedAt.Format(time.RFC3339),
-			Email:     selectedUser.Email,
-			Token:     selectedUserJWT,
+			ID:           selectedUser.ID,
+			CreatedAt:    selectedUser.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:    selectedUser.UpdatedAt.Format(time.RFC3339),
+			Email:        selectedUser.Email,
+			Token:        selectedUserJWT,
+			RefreshToekn: "",
 		},
 	)
 	if errEncode != nil {
