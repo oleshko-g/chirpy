@@ -402,3 +402,23 @@ func refreshAccessTokenHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
+
+func UpdateRefreshToken(w http.ResponseWriter, r *http.Request) {
+	b, errGetBearerToken := auth.GetBearerToken(&r.Header)
+	if errGetBearerToken != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	errUpdateRefreshToken := c.dbQueries.UpdateRefreshToken(r.Context(),
+		database.UpdateRefreshTokenParams{
+			Token:     b,
+			RevokedAt: sql.NullTime{Time: time.Now().UTC(), Valid: true},
+		},
+	)
+	if errUpdateRefreshToken != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
