@@ -363,3 +363,42 @@ func getChirp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+func refreshAccessTokenHandler(w http.ResponseWriter, r *http.Request) {
+	b, errGetBearerToken := auth.GetBearerToken(&r.Header)
+	if errGetBearerToken != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	selectedRefreshToken, errSelectRefreshToken := c.dbQueries.SelectRefreshToken(r.Context(), b)
+
+	if errors.Is(errSelectRefreshToken, sql.ErrNoRows) ||
+		selectedRefreshToken.ExpiresAt.Before(time.Now()) ||
+		selectedRefreshToken.RevokedAt.Valid {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
+	if errSelectRefreshToken != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	token, errSignUserJWT := auth.SignUserJWT(selectedRefreshToken.UserID, c.jwtSecret, time.Duration(1)*time.Hour)
+	if errSignUserJWT != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	errEncode := json.NewEncoder(w).Encode(struct {
+		Token string `json:"token"`
+	}{
+		Token: token,
+	})
+	if errEncode != nil {
+		fmt.Fprintf(os.Stderr, "%s", errEncode)
+		return
+	}
+
+}

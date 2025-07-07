@@ -34,3 +34,21 @@ func (q *Queries) InsertRefreshToken(ctx context.Context, arg InsertRefreshToken
 	_, err := q.db.ExecContext(ctx, insertRefreshToken, arg.Token, arg.UserID, arg.ExpiresAt)
 	return err
 }
+
+const selectRefreshToken = `-- name: SelectRefreshToken :one
+SELECT token, created_at, updated_at, user_id, expires_at, revoked_at FROM refresh_tokens WHERE token = $1
+`
+
+func (q *Queries) SelectRefreshToken(ctx context.Context, token string) (RefreshToken, error) {
+	row := q.db.QueryRowContext(ctx, selectRefreshToken, token)
+	var i RefreshToken
+	err := row.Scan(
+		&i.Token,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.UserID,
+		&i.ExpiresAt,
+		&i.RevokedAt,
+	)
+	return i, err
+}

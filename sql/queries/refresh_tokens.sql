@@ -8,3 +8,6 @@ INSERT INTO
         expires_at
     )
 VALUES ($1, NOW(), NOW(), $2, $3);
+
+-- name: SelectRefreshToken :one
+SELECT * FROM refresh_tokens WHERE token = $1;
