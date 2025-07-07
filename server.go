@@ -24,6 +24,22 @@ type apiConfig struct {
 	jwtSecret      string
 }
 
+func authenticateUserMiddleware(handlerWithUser func(w http.ResponseWriter, r *http.Request, userID uuid.UUID)) (handler func(w http.ResponseWriter, r *http.Request)) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		b, errGetBearerToken := auth.GetBearerToken(&r.Header)
+		if errGetBearerToken != nil {
+			w.WriteHeader(http.StatusBadRequest)
+		}
+		userID, errValidateUserJWT := auth.ValidateUserJWT(b, c.jwtSecret)
+		if errValidateUserJWT != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		handlerWithUser(w, r, userID)
+	}
+}
+
 func (c *apiConfig) incFileSrvHits(h http.Handler) http.Handler {
 	handler := func(w http.ResponseWriter, r *http.Request) {
 		c.fileserverHits.Add(1)
