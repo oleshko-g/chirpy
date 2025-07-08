@@ -21,6 +21,15 @@ RETURNING
         email
     ;
 
+-- name: UpdateUser :exec
+UPDATE users
+SET
+    updated_at = now(),
+    email = $2,
+    hashed_password = $3
+WHERE
+    id = $1;
+
 -- name: ResetUsers :exec
 DELETE FROM users;
 

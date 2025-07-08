@@ -28,7 +28,7 @@ func authenticateUserMiddleware(handlerWithUser func(w http.ResponseWriter, r *h
 	return func(w http.ResponseWriter, r *http.Request) {
 		b, errGetBearerToken := auth.GetBearerToken(&r.Header)
 		if errGetBearerToken != nil {
-			w.WriteHeader(http.StatusBadRequest)
+			w.WriteHeader(http.StatusUnauthorized)
 		}
 		userID, errValidateUserJWT := auth.ValidateUserJWT(b, c.jwtSecret)
 		if errValidateUserJWT != nil {
@@ -180,7 +180,8 @@ func loginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("%+v", reqBody)
+	fmt.Printf("Loggin in the user with the credentials:\n%+v", reqBody)
+	fmt.Println()
 
 	selectedUser, errSelectUserByEmail := c.dbQueries.SelectUserByEmail(r.Context(), reqBody.Email)
 
@@ -437,4 +438,43 @@ func UpdateRefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func putUserHandler(w http.ResponseWriter, r *http.Request, userID uuid.UUID) {
+	var reqBody struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+
+	errDecode := json.NewDecoder(r.Body).Decode(&reqBody)
+	if errDecode != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	hashedPassword, errHashPassword := auth.HashPassword(reqBody.Password)
+	if errHashPassword != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	errUpdateUser := c.dbQueries.UpdateUser(r.Context(), database.UpdateUserParams{
+		ID:    userID,
+		Email: reqBody.Email,
+		HashedPassword: sql.NullString{
+			String: hashedPassword,
+			Valid:  true,
+		},
+	})
+
+	if errUpdateUser != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(struct {
+		Email string `json:"email"`
+	}{
+		Email: reqBody.Email,
+	})
 }
