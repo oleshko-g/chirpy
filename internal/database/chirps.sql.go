@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 )
@@ -28,7 +29,7 @@ VALUES (
         $2
     )
 RETURNING
-    id, created_at, updated_at, body, user_id
+    id, created_at, updated_at, body, user_id, deleted_at
 `
 
 type CreateChirpParams struct {
@@ -45,12 +46,13 @@ func (q *Queries) CreateChirp(ctx context.Context, arg CreateChirpParams) (Chirp
 		&i.UpdatedAt,
 		&i.Body,
 		&i.UserID,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const selectChirp = `-- name: SelectChirp :one
-SELECT id, created_at, updated_at, body, user_id FROM chirps WHERE id = $1
+SELECT id, created_at, updated_at, body, user_id, deleted_at FROM chirps WHERE id = $1
 `
 
 func (q *Queries) SelectChirp(ctx context.Context, id uuid.UUID) (Chirp, error) {
@@ -62,12 +64,13 @@ func (q *Queries) SelectChirp(ctx context.Context, id uuid.UUID) (Chirp, error) 
 		&i.UpdatedAt,
 		&i.Body,
 		&i.UserID,
+		&i.DeletedAt,
 	)
 	return i, err
 }
 
 const selectChirps = `-- name: SelectChirps :many
-SELECT id, created_at, updated_at, body, user_id FROM chirps ORDER BY created_at
+SELECT id, created_at, updated_at, body, user_id, deleted_at FROM chirps ORDER BY created_at
 `
 
 func (q *Queries) SelectChirps(ctx context.Context) ([]Chirp, error) {
@@ -85,6 +88,7 @@ func (q *Queries) SelectChirps(ctx context.Context) ([]Chirp, error) {
 			&i.UpdatedAt,
 			&i.Body,
 			&i.UserID,
+			&i.DeletedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -97,4 +101,31 @@ func (q *Queries) SelectChirps(ctx context.Context) ([]Chirp, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateChirp = `-- name: UpdateChirp :exec
+UPDATE chirps
+SET
+    body = COALESCE($3, body),
+    deleted_at = COALESCE($4, deleted_at)
+WHERE
+    id = $1
+    AND user_id = $2
+`
+
+type UpdateChirpParams struct {
+	ID        uuid.UUID
+	UserID    uuid.UUID
+	Body      string
+	DeletedAt sql.NullTime
+}
+
+func (q *Queries) UpdateChirp(ctx context.Context, arg UpdateChirpParams) error {
+	_, err := q.db.ExecContext(ctx, updateChirp,
+		arg.ID,
+		arg.UserID,
+		arg.Body,
+		arg.DeletedAt,
+	)
+	return err
 }

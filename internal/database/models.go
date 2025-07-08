@@ -17,6 +17,7 @@ type Chirp struct {
 	UpdatedAt time.Time
 	Body      string
 	UserID    uuid.UUID
+	DeletedAt sql.NullTime
 }
 
 type RefreshToken struct {

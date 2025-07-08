@@ -16,6 +16,14 @@ VALUES (
     )
 RETURNING
     *;
+-- name: UpdateChirp :exec
+UPDATE chirps
+SET
+    body = COALESCE($3, body),
+    deleted_at = COALESCE($4, deleted_at)
+WHERE
+    id = $1
+    AND user_id = $2;
 
 -- name: SelectChirps :many
 SELECT * FROM chirps ORDER BY created_at;

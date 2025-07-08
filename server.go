@@ -362,6 +362,11 @@ func getChirp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if selectedChirp.DeletedAt.Valid {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
 	errEncode := json.NewEncoder(w).Encode(struct {
 		ID        uuid.UUID `json:"id"`
 		CreatedAt string    `json:"created_at"`
@@ -477,4 +482,45 @@ func putUserHandler(w http.ResponseWriter, r *http.Request, userID uuid.UUID) {
 	}{
 		Email: reqBody.Email,
 	})
+}
+
+func deleteChirp(w http.ResponseWriter, r *http.Request, userID uuid.UUID) {
+	chirp_uuid, errParse := uuid.Parse(r.PathValue("chirp_id"))
+	if errParse != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	selectedChirp, errSelectChirp := c.dbQueries.SelectChirp(r.Context(), chirp_uuid)
+	if errSelectChirp != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Printf("%+v\n", selectedChirp)
+
+	if selectedChirp.UserID != userID {
+		w.WriteHeader(http.StatusForbidden)
+		return
+	}
+
+	if selectedChirp.DeletedAt.Valid {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	errUpdateChirp := c.dbQueries.UpdateChirp(r.Context(), database.UpdateChirpParams{
+		ID:     chirp_uuid,
+		UserID: userID,
+		DeletedAt: sql.NullTime{
+			Time:  time.Now().UTC(),
+			Valid: true,
+		},
+	})
+	if errUpdateChirp != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+
 }
