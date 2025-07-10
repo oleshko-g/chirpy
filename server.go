@@ -22,6 +22,7 @@ type apiConfig struct {
 	dbQueries      *database.Queries
 	platform       string
 	jwtSecret      string
+	polkaApiKey    string
 }
 
 func authenticateUserMiddleware(handlerWithUser func(w http.ResponseWriter, r *http.Request, userID uuid.UUID)) (handler func(w http.ResponseWriter, r *http.Request)) {
@@ -254,6 +255,16 @@ func setUserIsChirpyRed(w http.ResponseWriter, r *http.Request) {
 		Data  struct {
 			UserId uuid.UUID `json:"user_id"`
 		} `json:"data"`
+	}
+
+	apiKey, errGetApiKey := auth.GetApiKey(&r.Header)
+	if errGetApiKey != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	if apiKey != c.polkaApiKey {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
 	}
 
 	errDecode := json.NewDecoder(r.Body).Decode(&reqBody)
