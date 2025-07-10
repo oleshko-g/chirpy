@@ -26,7 +26,15 @@ WHERE
     AND user_id = $2;
 
 -- name: SelectChirps :many
-SELECT * FROM chirps ORDER BY created_at;
+SELECT * FROM chirps WHERE deleted_at IS NULL ORDER BY created_at;
+
+-- name: SelectChirpsByUserID :many
+SELECT *
+FROM chirps
+WHERE
+    deleted_at IS NULL
+    AND user_id = $1
+ORDER BY created_at;
 
 -- name: SelectChirp :one
 SELECT * FROM chirps WHERE id = $1;
