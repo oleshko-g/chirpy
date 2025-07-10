@@ -1,4 +1,4 @@
--- name: InsetUser :one
+-- name: InsertUser :one
 INSERT INTO
     users (
         id,
@@ -35,3 +35,6 @@ DELETE FROM users;
 
 -- name: SelectUserByEmail :one
 SELECT * FROM users WHERE email = $1;
+
+-- name: SetUserIsChirpyRed :exec
+UPDATE users SET is_chirpy_red = $2 WHERE id = $1;

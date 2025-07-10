@@ -59,6 +59,7 @@ func newServeMux() *http.ServeMux {
 	mux.HandleFunc("GET /api/chirps/{chirp_id}", getChirp)
 	mux.HandleFunc("POST /api/refresh", refreshAccessTokenHandler)
 	mux.HandleFunc("POST /api/revoke", UpdateRefreshToken)
+	mux.HandleFunc("POST /api/polka/webhooks", setUserIsChirpyRed)
 
 	return mux
 }

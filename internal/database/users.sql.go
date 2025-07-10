@@ -13,7 +13,7 @@ import (
 	"github.com/google/uuid"
 )
 
-const insetUser = `-- name: InsetUser :one
+const insertUser = `-- name: InsertUser :one
 INSERT INTO
     users (
         id,
@@ -36,21 +36,21 @@ RETURNING
         email
 `
 
-type InsetUserParams struct {
+type InsertUserParams struct {
 	Email          string
 	HashedPassword sql.NullString
 }
 
-type InsetUserRow struct {
+type InsertUserRow struct {
 	ID        uuid.UUID
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	Email     string
 }
 
-func (q *Queries) InsetUser(ctx context.Context, arg InsetUserParams) (InsetUserRow, error) {
-	row := q.db.QueryRowContext(ctx, insetUser, arg.Email, arg.HashedPassword)
-	var i InsetUserRow
+func (q *Queries) InsertUser(ctx context.Context, arg InsertUserParams) (InsertUserRow, error) {
+	row := q.db.QueryRowContext(ctx, insertUser, arg.Email, arg.HashedPassword)
+	var i InsertUserRow
 	err := row.Scan(
 		&i.ID,
 		&i.CreatedAt,
@@ -70,7 +70,7 @@ func (q *Queries) ResetUsers(ctx context.Context) error {
 }
 
 const selectUserByEmail = `-- name: SelectUserByEmail :one
-SELECT id, created_at, updated_at, email, hashed_password FROM users WHERE email = $1
+SELECT id, created_at, updated_at, email, hashed_password, is_chirpy_red FROM users WHERE email = $1
 `
 
 func (q *Queries) SelectUserByEmail(ctx context.Context, email string) (User, error) {
@@ -82,8 +82,23 @@ func (q *Queries) SelectUserByEmail(ctx context.Context, email string) (User, er
 		&i.UpdatedAt,
 		&i.Email,
 		&i.HashedPassword,
+		&i.IsChirpyRed,
 	)
 	return i, err
+}
+
+const setUserIsChirpyRed = `-- name: SetUserIsChirpyRed :exec
+UPDATE users SET is_chirpy_red = $2 WHERE id = $1
+`
+
+type SetUserIsChirpyRedParams struct {
+	ID          uuid.UUID
+	IsChirpyRed bool
+}
+
+func (q *Queries) SetUserIsChirpyRed(ctx context.Context, arg SetUserIsChirpyRedParams) error {
+	_, err := q.db.ExecContext(ctx, setUserIsChirpyRed, arg.ID, arg.IsChirpyRed)
+	return err
 }
 
 const updateUser = `-- name: UpdateUser :exec

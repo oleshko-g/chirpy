@@ -138,7 +138,7 @@ func createUser(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	createdUser, errCreateUser := c.dbQueries.InsetUser(req.Context(), database.InsetUserParams{
+	createdUser, errCreateUser := c.dbQueries.InsertUser(req.Context(), database.InsertUserParams{
 		Email: reqBody.Email,
 		HashedPassword: sql.NullString{
 			String: hashedPassword,
@@ -154,10 +154,11 @@ func createUser(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(struct {
-		ID        uuid.UUID `json:"id"`
-		CreatedAt string    `json:"created_at"`
-		UpdatedAt string    `json:"updated_at"`
-		Email     string    `json:"email"`
+		ID          uuid.UUID `json:"id"`
+		CreatedAt   string    `json:"created_at"`
+		UpdatedAt   string    `json:"updated_at"`
+		Email       string    `json:"email"`
+		IsChirpyRed bool      `json:"is_chirpy_red"`
 	}{
 		ID:        createdUser.ID,
 		CreatedAt: createdUser.CreatedAt.Format(time.RFC3339),
@@ -228,6 +229,7 @@ func loginUser(w http.ResponseWriter, r *http.Request) {
 			CreatedAt    string    `json:"created_at"`
 			UpdatedAt    string    `json:"updated_at"`
 			Email        string    `json:"email"`
+			IsChirpyRed  bool      `json:"is_chirpy_red"`
 			Token        string    `json:"token"`
 			RefreshToken string    `json:"refresh_token"`
 		}{
@@ -235,6 +237,7 @@ func loginUser(w http.ResponseWriter, r *http.Request) {
 			CreatedAt:    selectedUser.CreatedAt.Format(time.RFC3339),
 			UpdatedAt:    selectedUser.UpdatedAt.Format(time.RFC3339),
 			Email:        selectedUser.Email,
+			IsChirpyRed:  selectedUser.IsChirpyRed,
 			Token:        selectedUserJWT,
 			RefreshToken: refreshToken,
 		},
@@ -243,6 +246,35 @@ func loginUser(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(os.Stderr, "%s", errEncode)
 		return
 	}
+}
+
+func setUserIsChirpyRed(w http.ResponseWriter, r *http.Request) {
+	var reqBody struct {
+		Event string `json:"event"`
+		Data  struct {
+			UserId uuid.UUID `json:"user_id"`
+		} `json:"data"`
+	}
+
+	errDecode := json.NewDecoder(r.Body).Decode(&reqBody)
+	if errDecode != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if reqBody.Event == "user.upgraded" {
+
+		if err := c.dbQueries.SetUserIsChirpyRed(r.Context(),
+			database.SetUserIsChirpyRedParams{ID: reqBody.Data.UserId, IsChirpyRed: true}); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func createChirp(w http.ResponseWriter, r *http.Request) {
