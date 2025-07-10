@@ -60,16 +60,12 @@ func ValidateUserJWT(tokenString, jwtSecret string) (uuid.UUID, error) {
 }
 
 func GetBearerToken(headers *http.Header) (string, error) {
-	authHeader, ok := (*headers)["Authorization"]
-	if !ok {
-		return "", fmt.Errorf("error no Authorization header")
+	authHeader, err := getAuthHeader(headers)
+	if err != nil {
+		return authHeader, err
 	}
 
-	if authHeader[0] == "" {
-		return "", fmt.Errorf("error Authorization header is not set")
-	}
-
-	bearerString, ok := strings.CutPrefix(authHeader[0], "Bearer ")
+	bearerString, ok := strings.CutPrefix(authHeader, "Bearer ")
 	if !ok {
 		return "", fmt.Errorf("error token string doesn't start with \"Bearer \"")
 	}
@@ -81,4 +77,30 @@ func MakeRefreshToken() (string, error) {
 	randomData := make([]byte, 32)
 	rand.Read(randomData)
 	return hex.EncodeToString(randomData), nil
+}
+
+func GetApiKey(headers *http.Header) (string, error) {
+	authHeader, err := getAuthHeader(headers)
+	if err != nil {
+		return authHeader, err
+	}
+	apiKey, ok := strings.CutPrefix(authHeader, "ApiKey ")
+	if !ok {
+		return "", fmt.Errorf("error token string doesn't start with \"ApiKey \"")
+	}
+
+	return strings.TrimLeft(apiKey, " "), nil
+}
+
+func getAuthHeader(headers *http.Header) (string, error) {
+	authHeader, ok := (*headers)["Authorization"]
+	if !ok {
+		return "", fmt.Errorf("error no Authorization header")
+	}
+
+	if authHeader[0] == "" {
+		return "", fmt.Errorf("error Authorization header is not set")
+	}
+
+	return authHeader[0], nil
 }
