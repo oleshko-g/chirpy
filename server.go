@@ -357,8 +357,23 @@ func createChirp(w http.ResponseWriter, r *http.Request) {
 }
 
 func getChirps(w http.ResponseWriter, r *http.Request) {
+	author_id := r.URL.Query()["author_id"]
 
-	selectedChirps, errSelectChirps := c.dbQueries.SelectChirps(r.Context())
+	var (
+		selectedChirps  []database.Chirp
+		errSelectChirps error
+	)
+	switch {
+	case len(author_id) == 1:
+		user_uuid, errParse := uuid.Parse(author_id[0])
+		if errParse != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		selectedChirps, errSelectChirps = c.dbQueries.SelectChirpsByUserID(r.Context(), user_uuid)
+	default:
+		selectedChirps, errSelectChirps = c.dbQueries.SelectChirps(r.Context())
+	}
 	if errSelectChirps != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
