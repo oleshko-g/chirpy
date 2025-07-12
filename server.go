@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -357,15 +358,17 @@ func createChirp(w http.ResponseWriter, r *http.Request) {
 }
 
 func getChirps(w http.ResponseWriter, r *http.Request) {
-	author_id := r.URL.Query()["author_id"]
+	queryParams := r.URL.Query()
 
+	authorValues := queryParams["author_id"]
 	var (
+		//sorted by CreatedAt ascendently in the db queries
 		selectedChirps  []database.Chirp
 		errSelectChirps error
 	)
 	switch {
-	case len(author_id) == 1:
-		user_uuid, errParse := uuid.Parse(author_id[0])
+	case len(authorValues) == 1:
+		user_uuid, errParse := uuid.Parse(authorValues[0])
 		if errParse != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -379,6 +382,19 @@ func getChirps(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	sortValues := queryParams["sort"]
+	if len(sortValues) == 1 {
+		sortValue := sortValues[0]
+		if sortValue == "desc" {
+			sort.Slice(selectedChirps, func(i, j int) bool {
+				return selectedChirps[i].CreatedAt.After(selectedChirps[j].CreatedAt)
+			})
+		}
+		// selectedChirps are already sorted by CreatedAt ascendently is SQL
+		// no need to sort in memory
+	}
+
+	// are sorted by CreatedAt
 	chirps := make([]struct {
 		ID        uuid.UUID `json:"id"`
 		CreatedAt string    `json:"created_at"`
@@ -386,7 +402,6 @@ func getChirps(w http.ResponseWriter, r *http.Request) {
 		Body      string    `json:"body"`
 		UserID    string    `json:"user_id"`
 	}, len(selectedChirps))
-	fmt.Printf("%+v", selectedChirps)
 	for i, v := range selectedChirps {
 		chirps[i].ID = v.ID
 		chirps[i].CreatedAt = v.CreatedAt.Format(time.RFC3339)
